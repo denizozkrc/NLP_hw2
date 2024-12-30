@@ -80,6 +80,7 @@ training_args = TrainingArguments(
 def tokenize_function(example):
     return tokenizer(example["text"], padding="max_length", truncation=True)
 
+
 dataset1 = dataset1.map(tokenize_function, batched=True)
 dataset2 = dataset2.map(tokenize_function, batched=True)
 
@@ -87,6 +88,7 @@ dataset2 = dataset2.map(tokenize_function, batched=True)
 #for i in range(len(dataset1)):
 #    if(dataset1[i]["label"] != ds1[i]["label"]):
 #        print("Error in tokenization")
+
 
 """trainer = Trainer(
     model=model,
