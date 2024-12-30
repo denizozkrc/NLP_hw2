@@ -1,10 +1,13 @@
-from sklearn.model_selection import StratifiedKFold
+# from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 from transformers import Trainer, TrainingArguments
+from transformers import AutoModelForSequenceClassification
 
 tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-turkish-cased")
-model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
+# model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
+model = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)  # Adjust `num_labels`
+
 
 dataset1_raw = (open(file="./datasets/orientation-tr-train.tsv", mode="r")).read()
 dataset1_inputs = []
@@ -37,7 +40,7 @@ del dataset2_labels[0]
 
 # TODO: Stratified k-fold 1 to 9 for the shared task
 
-inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+# inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
 
 # Get model outputs
 # outputs = model(**inputs)
@@ -52,13 +55,12 @@ training_args = TrainingArguments(
     save_total_limit=2,
 )
 
-"""dataset1 = {
-    "text": dataset1_inputs,
-    "label": dataset1_labels
-}
-dataset1DS = from_dict(dataset1)
+for i, text in enumerate(dataset1_inputs):
+    input = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    input["labels"] = int(dataset1_labels[i])
+    dataset1_inputs[i] = input
 
-trainer = Trainer(
+"""trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=dataset1DS,
@@ -66,5 +68,4 @@ trainer = Trainer(
 )
 
 trainer.train()"""
-
 
