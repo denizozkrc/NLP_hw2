@@ -1,33 +1,70 @@
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
+from transformers import AutoTokenizer, AutoModel
+from transformers import Trainer, TrainingArguments
+
+tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-turkish-cased")
+model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
 
 dataset1_raw = (open(file="./datasets/orientation-tr-train.tsv", mode="r")).read()
-dataset1 = []
+dataset1_inputs = []
+dataset1_labels = []
 for line in dataset1_raw.split("\n"):
     if len(line) == 0:
         continue
     parts = line.split("\t")
-    text_org = parts[-3].split(" ")
-    text_eng = parts[-2].split(" ")
-    dataset1.append(parts[0:-3] + [text_org] + [text_eng] + [parts[-1]])
-del dataset1[0]
+    text_org = parts[-3]
+    text_eng = parts[-2]
+    dataset1_inputs.append(text_org)
+    dataset1_labels.append(parts[-1])
+del dataset1_inputs[0]
+del dataset1_labels[0]
+print(dataset1_inputs[0:2])
 
 dataset2_raw = (open(file="./datasets/power-tr-train.tsv", mode="r")).read()
-dataset2 = []
+dataset2_inputs = []
+dataset2_labels = []
 for line in dataset2_raw.split("\n"):
     if len(line) == 0:
         continue
     parts = line.split("\t")
-    text_org = parts[-3].split(" ")
-    text_eng = parts[-2].split(" ")
-    dataset2.append(parts[0:-3] + [text_org] + [text_eng] + [parts[-1]])
-del dataset2[0]
+    text_org = parts[-3]
+    text_eng = parts[-2]
+    dataset2_inputs.append(text_org)
+    dataset2_labels.append(parts[-1])
+del dataset2_inputs[0]
+del dataset2_labels[0]
 
-#Stratified k-fold 1 to 9
+# TODO: Stratified k-fold 1 to 9 for the shared task
 
-skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)  # TODO: delete random_state=0
+inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
 
-skf.get_n_splits()
-print(skf)
+# Get model outputs
+# outputs = model(**inputs)
+
+training_args = TrainingArguments(
+    output_dir="./results",
+    eval_strategy="epoch",
+    learning_rate=2e-5,
+    per_device_train_batch_size=16,
+    num_train_epochs=3,
+    save_steps=10_000,
+    save_total_limit=2,
+)
+
+"""dataset1 = {
+    "text": dataset1_inputs,
+    "label": dataset1_labels
+}
+dataset1DS = from_dict(dataset1)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=dataset1DS,
+    # eval_dataset=eval_dataset, # use this later
+)
+
+trainer.train()"""
 
 
