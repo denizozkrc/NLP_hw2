@@ -1,5 +1,5 @@
 import numpy as np
-from transformers import AutoTokenizer, Trainer, TrainingArguments, pipeline, AutoModelForSequenceClassification, GPT2Tokenizer, GPT2Model
+from transformers import AutoTokenizer, Trainer, TrainingArguments, pipeline, AutoModelForSequenceClassification, GPT2Tokenizer, GPT2ForSequenceClassification, AutoModel
 from datasets import Dataset
 import evaluate
 from sklearn.model_selection import train_test_split
@@ -19,15 +19,16 @@ tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token
 model1 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
 model2 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
 
-model_gpt2 = GPT2Model.from_pretrained("gpt2", num_labels=2)
+model_gpt2 = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=2)
 
 metric = evaluate.load("accuracy")
-# TODO: max_length
 
 
 def execute_gpt2(org_lang: bool, dataset_test):
-    classifier = pipeline("text-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
+    classifier = pipeline("zero-shot-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
     predictions = classifier(dataset_test["text"])
+    # inputs = tokenizer_gpt2(dataset_test["text"], padding=True, truncation=True, return_tensors="pt")
+    # outputs = model_gpt2(**inputs)
 
     predicted_labels = []
     for prediction in predictions:
