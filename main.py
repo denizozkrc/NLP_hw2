@@ -36,8 +36,9 @@ def execute_gpt2(org_lang: bool, dataset_test):
     for true_l, predicted_l in zip(dataset_test["label"], predicted_labels):
         if true_l == predicted_l:
             accuracy += 1
-    return (accuracy = accuracy / len(predicted_labels))
-    
+    accuracy = accuracy / len(predicted_labels)
+    return (accuracy)
+
 
 def tokenize_function(example):
     return tokenizer(example["text"], padding="max_length", truncation=True)
