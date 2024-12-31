@@ -4,28 +4,25 @@ from datasets import Dataset
 import evaluate
 from sklearn.model_selection import train_test_split
 import pandas as pd
-import os
-
-os.environ["TORCH_USE_CUDA_DSA"] = "1"  # Enable device-side assertions
-
-
 
 tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-turkish-cased")
 tokenizer_eng = AutoTokenizer.from_pretrained("bert-base-uncased")
 tokenizer_gpt2 = GPT2Tokenizer.from_pretrained("gpt2")
-tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token 
+# tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token 
 
 # model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
 model1 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
 model2 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
 
 model_gpt2 = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=2)
+# model_gpt2 = GPT2Model.from_pretrained("gpt2", num_labels=2)
 
 metric = evaluate.load("accuracy")
 
 
 def execute_gpt2(org_lang: bool, dataset_test):
     classifier = pipeline("zero-shot-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
+    # classifier = pipeline("text-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
     predictions = classifier(dataset_test["text"])
     # inputs = tokenizer_gpt2(dataset_test["text"], padding=True, truncation=True, return_tensors="pt")
     # outputs = model_gpt2(**inputs)
