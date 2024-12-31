@@ -24,21 +24,7 @@ def tokenize_function_gpt2(example):
     return tokenizer_gpt2(example["text"], padding="max_length", truncation=True)
 
 
-def execute_gpt2(org_lang: bool, file_name: str):    
-    dataset_raw = pd.read_csv(file_name, sep="\t", header=None, names=["id", "speaker", "sex", "text_org", "text_eng", "label"])
-    dataset = dataset_raw[dataset_raw["label"] != "label"]
-    dataset = dataset.iloc[:100] # for trial phase
-    dataset = dataset[dataset["text_org"].notnull()]
-    dataset["label"] = dataset["label"].astype(int)
-
-    dataset_dict = {
-        "text": dataset["text_org"].tolist() if org_lang else dataset["text_eng"].tolist(),
-        "label": dataset["label"].tolist()
-    }
-
-    dataset_test= Dataset.from_dict(dataset_dict)
-    dataset_test = dataset_test.map(tokenize_function_gpt2, batched=True)
-
+def execute_gpt2(org_lang: bool, dataset_test):
     classifier = pipeline("text-classification", model=model_gpt2, tokenizer=tokenizer_gpt2)
     predictions = classifier(dataset_test["text"])
 
@@ -50,10 +36,8 @@ def execute_gpt2(org_lang: bool, file_name: str):
     for true_l, predicted_l in zip(dataset_test["label"], predicted_labels):
         if true_l == predicted_l:
             accuracy += 1
-    accuracy = accuracy / len(predicted_labels)
-    print("original language: ", org_lang, "file_name: ", file_name)
-    print("Accuracy: ", accuracy)
-
+    return (accuracy = accuracy / len(predicted_labels))
+    
 
 def tokenize_function(example):
     return tokenizer(example["text"], padding="max_length", truncation=True)
@@ -109,12 +93,13 @@ def execute_task(org_lang: bool, is_orientation: bool):
     evaluation_results = trainer.evaluate()
     print("Evaluation Results original language:", evaluation_results) if org_lang else print("Evaluation Results English:", evaluation_results)
 
-    if is_orientation:
-        execute_gpt2(True, "./datasets/orientation-tr-test.tsv")  # on original lang (tr)
-        execute_gpt2(False, "./datasets/orientation-tr-test.tsv")  # on english
-    else:
-        execute_gpt2(True, "./datasets/power-tr-test.tsv")  # on original lang (tr)
-        execute_gpt2(False, "./datasets/power-tr-test.tsv")  # on english
+    accuracy = execute_gpt2(True, dataset_test)  # on original lang (tr)
+    print("original language, ", "is orientation: ", is_orientation)
+    print("Accuracy: ", accuracy)
+
+    accuracy = execute_gpt2(False, dataset_test)  # on english
+    print("english, ", "is orientation: ", is_orientation)
+    print("Accuracy: ", accuracy)
 
 
 # TODO: Stratified k-fold 1 to 9 for the shared task
