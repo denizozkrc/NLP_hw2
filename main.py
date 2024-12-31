@@ -26,8 +26,8 @@ def tokenize_function_llama(example):
     return tokenizer_llama(example["text"], padding="max_length", truncation=True)
 
 
-def execute_llama_twice():
-    dataset_raw_test = (open(file="./datasets/orientation-tr-test.tsv", mode="r")).read()
+def execute_llama(org_lang: bool, file_name: str):
+    dataset_raw_test = (open(file=file_name, mode="r")).read()
     dataset_dict_test = {"text": [], "label": []}
     for line in dataset_raw_test.split("\n"):
         if len(line) == 0:
@@ -36,8 +36,8 @@ def execute_llama_twice():
         if (parts[-1] == "label"):
             continue
         text_org = parts[-3]
-        # text_eng = parts[-2]
-        dataset_dict_test["text"].append(text_org)
+        text_eng = parts[-2]
+        dataset_dict_test["text"].append(text_org) if org_lang else dataset_dict_test["text"].append(text_eng)
         dataset_dict_test["label"].append(int(parts[-1]))
     dataset_test = Dataset.from_dict(dataset_dict_test)
 
@@ -56,8 +56,6 @@ def execute_llama_twice():
             accuracy += 1
     accuracy = accuracy/len(predicted_labels)
     print("Accuracy: ", accuracy)
-
-
 
 
 def tokenize_function(example):
@@ -125,6 +123,9 @@ def execute_task1():
     evaluation_results = trainer.evaluate()
     print("Evaluation Results task1:", evaluation_results)
 
+    execute_llama(True, "./datasets/orientation-tr-test.tsv")  # on original lang (tr)
+    execute_llama(False, "./datasets/orientation-tr-test.tsv")  # on english
+
 
 def execute_task2():
     # on english translated text 
@@ -176,6 +177,9 @@ def execute_task2():
 
     evaluation_results = trainer.evaluate()
     print("Evaluation Results task2: ", evaluation_results)
+
+    execute_llama(True, "./datasets/power-tr-test.tsv")  # on original lang (tr)
+    execute_llama(False, "./datasets/power-tr-test.tsv")  # on english
 
 
 # TODO: Stratified k-fold 1 to 9 for the shared task
