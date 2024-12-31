@@ -6,8 +6,8 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 
 
-
 tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-turkish-cased")
+tokenizer_eng = AutoTokenizer.from_pretrained("bert-base-uncased")
 tokenizer_gpt2 = GPT2Tokenizer.from_pretrained("gpt2")
 
 # model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
@@ -18,10 +18,6 @@ model_gpt2 = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=2)
 
 metric = evaluate.load("accuracy")
 # TODO: max_length
-
-
-def tokenize_function_gpt2(example):
-    return tokenizer_gpt2(example["text"], padding="max_length", truncation=True)
 
 
 def execute_gpt2(org_lang: bool, dataset_test):
@@ -42,6 +38,11 @@ def execute_gpt2(org_lang: bool, dataset_test):
 
 def tokenize_function(example):
     return tokenizer(example["text"], padding="max_length", truncation=True)
+    # tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+
+
+def tokenize_function_eng(example):
+    return tokenizer_eng(example["text"], padding="max_length", truncation=True)
     # tokenizer(text, return_tensors="pt", padding=True, truncation=True)
 
 
@@ -78,8 +79,8 @@ def execute_task(org_lang: bool, is_orientation: bool):
         eval_strategy="epoch",
     )
 
-    dataset_train = dataset_train.map(tokenize_function, batched=True)
-    dataset_test = dataset_test.map(tokenize_function, batched=True)
+    dataset_train = dataset_train.map(tokenize_function, batched=True) if org_lang else dataset_train.map(tokenize_function_eng, batched=True)
+    dataset_test = dataset_test.map(tokenize_function, batched=True) if org_lang else dataset_test.map(tokenize_function_eng, batched=True)
 
     trainer = Trainer(
         model=model1,
