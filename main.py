@@ -4,11 +4,14 @@ from datasets import Dataset
 import evaluate
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-turkish-cased")
 tokenizer_eng = AutoTokenizer.from_pretrained("bert-base-uncased")
 tokenizer_gpt2 = GPT2Tokenizer.from_pretrained("gpt2")
-# tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token 
+# tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token
 
 tokenizer_llama = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")
 model_llama = AutoModelForSequenceClassification.from_pretrained(
@@ -26,11 +29,17 @@ model_gpt2 = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=2)
 metric = evaluate.load("accuracy")
 
 
-def execute_llama(bool, dataset_test):
+def execute_llama(dataset_test):
     # Use the LLaMA model with a zero-shot classification pipeline
-    classifier = pipeline("zero-shot-classification", model=model_llama, tokenizer=tokenizer_llama, device=0)
+    classifier = pipeline("zero-shot-classification", model=model_llama, tokenizer=tokenizer_llama, device =-1)
 
-    predictions = classifier(dataset_test["text"])
+    valid_texts = [text for text in dataset_test["text"] if text and text.strip()]
+    valid_labels = [dataset_test["label"][i] for i, text in enumerate(dataset_test["text"]) if text and text.strip()]
+    predictions = classifier(valid_texts, [1, 0]) # Pass the filtered texts
+
+    #predictions = classifier(dataset_test["text"])
+
+    print(predictions[0])
 
     predicted_labels = []
     for prediction in predictions:
@@ -45,7 +54,7 @@ def execute_llama(bool, dataset_test):
 
 
 def execute_gpt2(dataset_test):
-    classifier = pipeline("zero-shot-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
+    classifier = pipeline("zero-shot-classification", model=model_gpt2, tokenizer=tokenizer_gpt2)
     # classifier = pipeline("text-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
     predictions = classifier(dataset_test["text"])
     # inputs = tokenizer_gpt2(dataset_test["text"], padding=True, truncation=True, return_tensors="pt")
@@ -80,7 +89,7 @@ def compute_metrics(eval_pred):
 
 
 def execute_task(org_lang: bool, is_orientation: bool):
-    dataset_raw = pd.read_csv("./datasets/orientation-tr-train.tsv", sep="\t", header=None, names=["id", "speaker", "sex", "text_org", "text_eng", "label"]) if is_orientation else pd.read_csv("./datasets/power-tr-train.tsv", sep="\t", header=None, names=["id", "speaker", "sex", "text_org", "text_eng", "label"])
+    dataset_raw = pd.read_csv("./orientation-tr-train.tsv", sep="\t", header=None, names=["id", "speaker", "sex", "text_org", "text_eng", "label"]) if is_orientation else pd.read_csv("./power-tr-train.tsv", sep="\t", header=None, names=["id", "speaker", "sex", "text_org", "text_eng", "label"])
     dataset = dataset_raw[dataset_raw["label"] != "label"]
     dataset = dataset.iloc[:10] # for trial phase
     dataset = dataset[dataset["text_org"].notnull()]
@@ -116,14 +125,14 @@ def execute_task(org_lang: bool, is_orientation: bool):
         save_total_limit=2,
     )"""
 
-    dataset_train = dataset_train.map(tokenize_function, batched=True) if org_lang else dataset_train.map(tokenize_function_eng, batched=True)
-    dataset_test = dataset_test.map(tokenize_function, batched=True) if org_lang else dataset_test.map(tokenize_function_eng, batched=True)
+    dataset_train_mapped = dataset_train.map(tokenize_function, batched=True) if org_lang else dataset_train.map(tokenize_function_eng, batched=True)
+    dataset_test_mapped = dataset_test.map(tokenize_function, batched=True) if org_lang else dataset_test.map(tokenize_function_eng, batched=True)
 
     """trainer = Trainer(
         model=model1,
         args=training_args,
-        train_dataset=dataset_train,
-        eval_dataset=dataset_test,
+        train_dataset=dataset_train_mapped,
+        eval_dataset=dataset_test_mapped,
         compute_metrics=compute_metrics,
     )
 
@@ -132,19 +141,19 @@ def execute_task(org_lang: bool, is_orientation: bool):
     evaluation_results = trainer.evaluate()
     print("Evaluation Results original language:", evaluation_results) if org_lang else print("Evaluation Results English:", evaluation_results)
 """
-    """accuracy = execute_gpt2(dataset_test)  # on original lang (tr)
+    """accuracy = execute_gpt2(dataset_test_mapped)  # on original lang (tr)
     print("original language, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
 
-    accuracy = execute_gpt2(dataset_test)  # on english
+    accuracy = execute_gpt2(dataset_test_mapped)  # on english
     print("english, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)"""
 
-    accuracy = execute_llama(dataset_test)  # on original lang (tr)
+    accuracy = execute_llama(dataset_test_mapped)  # on original lang (tr)
     print("original language, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
 
-    accuracy = execute_llama(dataset_test)  # on english
+    accuracy = execute_llama(dataset_test_mapped)  # on english
     print("english, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
 
