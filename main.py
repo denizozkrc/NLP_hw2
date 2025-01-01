@@ -10,6 +10,12 @@ tokenizer_eng = AutoTokenizer.from_pretrained("bert-base-uncased")
 tokenizer_gpt2 = GPT2Tokenizer.from_pretrained("gpt2")
 # tokenizer_gpt2.pad_token = tokenizer_gpt2.eos_token 
 
+tokenizer_llama = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")
+model_llama = AutoModelForSequenceClassification.from_pretrained(
+    "meta-llama/Llama-3.1-8B", num_labels=2
+)
+
+
 # model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
 model1 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
 model2 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
@@ -20,7 +26,25 @@ model_gpt2 = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=2)
 metric = evaluate.load("accuracy")
 
 
-def execute_gpt2(org_lang: bool, dataset_test):
+def execute_llama(bool, dataset_test):
+    # Use the LLaMA model with a zero-shot classification pipeline
+    classifier = pipeline("zero-shot-classification", model=model_llama, tokenizer=tokenizer_llama, device=0)
+
+    predictions = classifier(dataset_test["text"])
+
+    predicted_labels = []
+    for prediction in predictions:
+        predicted_labels.append(int(prediction["label"][-1]))  # 1 or 0
+
+    accuracy = 0
+    for true_l, predicted_l in zip(dataset_test["label"], predicted_labels):
+        if true_l == predicted_l:
+            accuracy += 1
+    accuracy = accuracy / len(predicted_labels)
+    return (accuracy)
+
+
+def execute_gpt2(dataset_test):
     classifier = pipeline("zero-shot-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
     # classifier = pipeline("text-classification", model=model_gpt2, tokenizer=tokenizer_gpt2, device=0)
     predictions = classifier(dataset_test["text"])
@@ -108,11 +132,19 @@ def execute_task(org_lang: bool, is_orientation: bool):
     evaluation_results = trainer.evaluate()
     print("Evaluation Results original language:", evaluation_results) if org_lang else print("Evaluation Results English:", evaluation_results)
 """
-    accuracy = execute_gpt2(True, dataset_test)  # on original lang (tr)
+    """accuracy = execute_gpt2(dataset_test)  # on original lang (tr)
     print("original language, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
 
-    accuracy = execute_gpt2(False, dataset_test)  # on english
+    accuracy = execute_gpt2(dataset_test)  # on english
+    print("english, ", "is orientation: ", is_orientation)
+    print("Accuracy: ", accuracy)"""
+
+    accuracy = execute_llama(dataset_test)  # on original lang (tr)
+    print("original language, ", "is orientation: ", is_orientation)
+    print("Accuracy: ", accuracy)
+
+    accuracy = execute_llama(dataset_test)  # on english
     print("english, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
 
