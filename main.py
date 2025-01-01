@@ -33,9 +33,9 @@ def execute_llama(dataset_test):
     # Use the LLaMA model with a zero-shot classification pipeline
     classifier = pipeline("zero-shot-classification", model=model_llama, tokenizer=tokenizer_llama, device =-1)
 
-    valid_texts = [text for text in dataset_test["text"] if text and text.strip()]
-    valid_labels = [dataset_test["label"][i] for i, text in enumerate(dataset_test["text"]) if text and text.strip()]
-    predictions = classifier(valid_texts, [1, 0]) # Pass the filtered texts
+    # valid_texts = [text for text in dataset_test["text"] if text and text.strip()]
+    # valid_labels = [dataset_test["label"][i] for i, text in enumerate(dataset_test["text"]) if text and text.strip()]
+    predictions = classifier(dataset_test["text"], [1, 0]) # Pass the filtered texts
 
     #predictions = classifier(dataset_test["text"])
 
@@ -43,11 +43,11 @@ def execute_llama(dataset_test):
 
     predicted_labels = []
     for prediction in predictions:
-        predicted_labels.append(int(prediction["label"][-1]))  # 1 or 0
-
+        predicted_label = prediction["labels"][prediction["scores"].index(max(prediction["scores"]))]
+        predicted_labels.append(predicted_label)
     accuracy = 0
     for true_l, predicted_l in zip(dataset_test["label"], predicted_labels):
-        if true_l == predicted_l:
+        if int(true_l) == predicted_l:
             accuracy += 1
     accuracy = accuracy / len(predicted_labels)
     return (accuracy)
