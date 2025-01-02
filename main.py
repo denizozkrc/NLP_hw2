@@ -19,7 +19,7 @@ model_llama = AutoModelForSequenceClassification.from_pretrained("meta-llama/Lla
 
 # model = AutoModel.from_pretrained("dbmdz/bert-base-turkish-cased")
 model1 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
-model2 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-turkish-cased", num_labels=2)
+model2 = AutoModelForSequenceClassification.from_pretrained("dbmdz/bert-base-uncased", num_labels=2)
 
 metric = evaluate.load("accuracy")
 
@@ -75,64 +75,72 @@ def execute_task(org_lang: bool, is_orientation: bool):
     dataset_train_split, dataset_test_split = train_test_split(dataset, test_size=0.1, random_state=0) # TODO: random state
 
     dataset_train_dict = {
-        "text": dataset_train_split["text_org"].tolist() if org_lang else dataset_train_split["text_eng"].tolist(),
+        "text": dataset_train_split["text_org"].tolist(),
+        "label": dataset_train_split["label"].tolist()
+    }
+
+    dataset_train_dict_eng = {
+        "text": dataset_train_split["text_eng"].tolist(),
         "label": dataset_train_split["label"].tolist()
     }
 
     dataset_test_dict = {
-        "text": dataset_test_split["text_org"].tolist() if org_lang else dataset_test_split["text_eng"].tolist(),
+        "text": dataset_test_split["text_org"].tolist(), 
+        "label": dataset_test_split["label"].tolist()
+    }
+
+    dataset_test_dict_eng = {
+        "text": dataset_test_split["text_eng"].tolist(), 
         "label": dataset_test_split["label"].tolist()
     }
 
     dataset_train = Dataset.from_dict(dataset_train_dict)
     dataset_test = Dataset.from_dict(dataset_test_dict)
 
-    """training_args = TrainingArguments(
-        output_dir="./results",
-        eval_strategy="steps",
-        eval_steps=500,
-        #evaluation_strategy="steps",
+    dataset_train_eng = Dataset.from_dict(dataset_train_dict_eng)
+    dataset_test_eng = Dataset.from_dict(dataset_test_dict_eng)
+
+    #training_args = TrainingArguments(
+    #    output_dir="./results",
+    #    eval_strategy="steps",
+    #    eval_steps=500,
+    #    #evaluation_strategy="steps",
         #eval_steps=10,
-        num_train_epochs=1,
+    #    num_train_epochs=1,
         #load_best_model_at_end=True,
-        report_to=["tensorboard"],
-        logging_dir="./logs",
-        per_device_train_batch_size=8,  # Reduce if memory is an issue
-        save_steps=10,
-        save_total_limit=2,
-    )"""
+    #    report_to=["tensorboard"],
+    #    logging_dir="./logs",
+    #    per_device_train_batch_size=8,  # Reduce if memory is an issue
+    #    save_steps=10,
+    #    save_total_limit=2,
+    #)
 
-    dataset_train_mapped = dataset_train.map(tokenize_function, batched=True) if org_lang else dataset_train.map(tokenize_function_eng, batched=True)
-    dataset_test_mapped = dataset_test.map(tokenize_function, batched=True) if org_lang else dataset_test.map(tokenize_function_eng, batched=True)
+    dataset_train_mapped = dataset_train.map(tokenize_function, batched=True) 
+    dataset_test_mapped = dataset_test.map(tokenize_function, batched=True) 
 
-    """trainer = Trainer(
-        model=model1,
-        args=training_args,
-        train_dataset=dataset_train_mapped,
-        eval_dataset=dataset_test_mapped,
-        compute_metrics=compute_metrics,
-    )
+    dataset_train_mapped_eng = dataset_train_eng.map(tokenize_function_eng, batched=True) 
+    dataset_test_mapped_eng = dataset_test_eng.map(tokenize_function_eng, batched=True)
 
-    trainer.train()
+    #trainer = Trainer(
+    #    model=model1 if org_lang else model2,
+    #    args=training_args,
+    #    train_dataset=dataset_train_mapped if org_lang else dataset_train_mapped_eng ,
+    #    eval_dataset=dataset_test_mapped if org_lang else dataset_test_mapped_eng,
+    #    compute_metrics=compute_metrics,
+    #)
 
-    evaluation_results = trainer.evaluate()
-    print("Evaluation Results original language:", evaluation_results) if org_lang else print("Evaluation Results English:", evaluation_results)
-"""
-    """accuracy = execute_gpt2(dataset_test_mapped)  # on original lang (tr)
-    print("original language, ", "is orientation: ", is_orientation)
-    print("Accuracy: ", accuracy)
+    #trainer.train()
 
-    accuracy = execute_gpt2(dataset_test_mapped)  # on english
+    #evaluation_results = trainer.evaluate()
+    #print("Evaluation Results original language:", evaluation_results) if org_lang else print("Evaluation Results English:", evaluation_results)
+
+    #accuracy = execute_llama(dataset_test_mapped)  # on original lang (tr)
+    #print("original language, ", "is orientation: ", is_orientation)
+    #print("Accuracy: ", accuracy)
+
+    accuracy = execute_llama(dataset_test_mapped_eng)  # on english
     print("english, ", "is orientation: ", is_orientation)
-    print("Accuracy: ", accuracy)"""
-
-    accuracy = execute_llama(dataset_test_mapped)  # on original lang (tr)
-    print("original language, ", "is orientation: ", is_orientation)
     print("Accuracy: ", accuracy)
-
-    # accuracy = execute_llama(dataset_test_mapped)  # on english
-    # print("english, ", "is orientation: ", is_orientation)
-    # print("Accuracy: ", accuracy)
 
 
 # TODO: Stratified k-fold 1 to 9 for the shared task
